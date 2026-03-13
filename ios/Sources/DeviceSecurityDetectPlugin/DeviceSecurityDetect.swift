@@ -5,7 +5,12 @@ import LocalAuthentication
 @objc public class DeviceSecurityDetect: NSObject {
     @objc public func isJailBreak() -> Bool {
         log("Checking if device is jailbroken")
-        return hasCydiaInstalled() || isContainsSuspiciousApps() || isSuspiciousSystemPathsExists() || canEditSystemFiles();
+        #if targetEnvironment(simulator)
+        return false
+        #endif
+        
+        return hasCydiaInstalled() || isContainsSuspiciousApps() || isSuspiciousSystemPathsExists() || canEditSystemFiles() ||
+            canWriteOutsideSandbox()
     }
 
     @objc public func pinCheck() -> Bool {
@@ -53,6 +58,17 @@ import LocalAuthentication
         }
     }
     
+    func canWriteOutsideSandbox() -> Bool {
+        let testPath = "/private/jailbreak_test.txt"
+        do {
+            try "test".write(toFile: testPath, atomically: true, encoding: .utf8)
+            try FileManager.default.removeItem(atPath: testPath)
+            return true
+        } catch {
+            return false
+        }
+    }
+    
     var suspiciousAppsPathToCheck: [String] {
         return [
             "/Applications/Cydia.app",
@@ -84,7 +100,18 @@ import LocalAuthentication
             "/usr/sbin/sshd",
             "/etc/apt",
             "/bin/bash",
-            "/Library/MobileSubstrate/MobileSubstrate.dylib"
+            "/Library/MobileSubstrate/MobileSubstrate.dylib",
+            // rootless jailbreak
+            "/var/jb",
+            "/var/jb/usr/bin/bash",
+            "/var/jb/usr/bin/apt",
+            "/var/jb/Applications/Sileo.app",
+            "/var/jb/usr/lib/libellekit.dylib",
+            // tweak injection
+            "/usr/lib/libhooker.dylib",
+            "/usr/lib/libsubstitute.dylib",
+            // Frida
+            "/usr/sbin/frida-server"
         ]
     }
 }
