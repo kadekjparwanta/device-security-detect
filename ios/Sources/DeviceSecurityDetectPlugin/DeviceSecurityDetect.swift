@@ -5,10 +5,6 @@ import LocalAuthentication
 @objc public class DeviceSecurityDetect: NSObject {
     @objc public func isJailBreak() -> Bool {
         log("Checking if device is jailbroken")
-        #if targetEnvironment(simulator)
-        return false
-        #endif
-        
         return hasCydiaInstalled() || isContainsSuspiciousApps() || isSuspiciousSystemPathsExists() || canEditSystemFiles() ||
             canWriteOutsideSandbox() || checkDYLD()
     }
@@ -74,7 +70,7 @@ import LocalAuthentication
     }
 
     // Alternative to fork() check - checks for suspicious dylibs
-    static func checkDYLD() -> Bool {
+    func checkDYLD() -> Bool {
         let suspiciousLibraries = [
             "SubstrateLoader.dylib",
             "libhooker.dylib",
