@@ -10,7 +10,7 @@ import java.io.InputStreamReader;
 
 public class DeviceSecurityDetect {
     public boolean isDeviceRooted() {
-        return checkBuildTags() || checkSuBinary() || isSuBinaryAvailable() || areOtaCertsMissing();
+        return checkBuildTags() || checkSuBinary() || isSuBinaryAvailable() || areOtaCertsMissing() || canExecuteSu();
     }
 
     public boolean pinCheck(Context context) {
@@ -39,7 +39,8 @@ public class DeviceSecurityDetect {
                 "/system/sd/xbin/su",
                 "/system/bin/failsafe/su",
                 "/data/local/su",
-                "/su/bin/su"
+                "/su/bin/su",
+                "/vendor/bin/su"
         };
         for (String path : paths) {
             if (new File(path).exists()) return true;
@@ -55,7 +56,7 @@ public class DeviceSecurityDetect {
     private boolean isSuBinaryAvailable() {
         Process process = null;
         try {
-            process = Runtime.getRuntime().exec(new String[] { "/system/xbin/which", "su" });
+            process = Runtime.getRuntime().exec(new String[] { "which", "su" });
             BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()));
             if (in.readLine() != null) return true;
             return false;
@@ -63,6 +64,19 @@ public class DeviceSecurityDetect {
             return false;
         } finally {
             if (process != null) process.destroy();
+        }
+    }
+
+    private boolean canExecuteSu() {
+        try {
+            Process process = Runtime.getRuntime().exec("su -c id");
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(process.getInputStream())
+            );
+            String output = in.readLine();
+            return output != null && output.contains("uid=0");
+        } catch (Exception e) {
+            return false;
         }
     }
 }
